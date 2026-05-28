@@ -6,18 +6,119 @@
   <title>Conftimer</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body {
-      background: #111;
-      color: #fff;
+
+    /* ─── Landscape : affichage plein écran ─── */
+    #landscape-ui {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #0d0d0d;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      user-select: none;
       font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+    @media (orientation: landscape) {
+      #landscape-ui { display: flex; }
+      #portrait-ui  { display: none !important; }
+    }
+    #ls-mode-label {
+      font-size: clamp(14px, 2.5vw, 28px);
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 3vh;
+    }
+    #ls-time {
+      font-size: clamp(80px, 22vw, 320px);
+      font-weight: 100;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      transition: color 0.8s ease;
+      color: #fff;
+    }
+    #ls-status-label {
+      font-size: clamp(12px, 1.8vw, 22px);
+      letter-spacing: 0.6em;
+      text-transform: uppercase;
+      color: #3a3a3a;
+      margin-top: 3vh;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.15; }
+    }
+    .blink { animation: blink 1s ease-in-out infinite; }
+
+    /* ─── Bouton ⚙ (paysage uniquement) ─── */
+    #btn-settings {
+      position: fixed;
+      top: max(14px, env(safe-area-inset-top, 14px));
+      right: max(16px, env(safe-area-inset-right, 16px));
+      width: 40px; height: 40px;
+      border: none;
+      background: rgba(255,255,255,.07);
+      color: #555;
+      font-size: 18px;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 10;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: background .2s, color .2s;
+    }
+    #btn-settings:active { background: rgba(255,255,255,.16); color: #aaa; }
+    @media (orientation: landscape) { #btn-settings { display: flex; } }
+
+    /* ─── Overlay réglages ─── */
+    #settings-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 50;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .22s;
+    }
+    #settings-overlay.open { opacity: 1; pointer-events: auto; }
+    #settings-panel {
+      background: #1a1a1a;
+      border-radius: 24px 24px 0 0;
+      padding: 14px 16px max(20px, env(safe-area-inset-bottom, 20px));
+      width: 100%;
+      max-width: 500px;
+      max-height: 88dvh;
+      overflow-y: auto;
+      transform: translateY(24px);
+      transition: transform .22s;
+    }
+    #settings-overlay.open #settings-panel { transform: translateY(0); }
+    .panel-handle {
+      width: 36px; height: 4px;
+      background: #2e2e2e;
+      border-radius: 2px;
+      margin: 0 auto 18px;
+    }
+
+    /* ─── Portrait : interface de contrôle ─── */
+    body { background: #111; color: #fff; font-family: 'Helvetica Neue', Arial, sans-serif; }
+    #portrait-ui {
       min-height: 100dvh;
-      padding: 20px 16px;
-      padding-bottom: max(20px, env(safe-area-inset-bottom));
+      padding: 20px 16px max(20px, env(safe-area-inset-bottom, 20px));
     }
     h1 {
       text-align: center;
-      font-size: 13px;
-      font-weight: 500;
+      font-size: 13px; font-weight: 500;
       color: #555;
       letter-spacing: 0.35em;
       text-transform: uppercase;
@@ -35,44 +136,36 @@
       border-radius: 14px;
       background: transparent;
       color: #666;
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 13px; font-weight: 600;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       cursor: pointer;
       transition: border-color .2s, color .2s, background .2s;
     }
-    .mode-btn.active {
-      border-color: #4a9eff;
-      color: #4a9eff;
-      background: rgba(74,158,255,.08);
-    }
+    .mode-btn.active { border-color: #4a9eff; color: #4a9eff; background: rgba(74,158,255,.08); }
     .mode-btn:disabled { opacity: .35; cursor: not-allowed; }
     #mini-time {
       text-align: center;
-      font-size: 56px;
-      font-weight: 100;
+      font-size: 56px; font-weight: 100;
       font-variant-numeric: tabular-nums;
       letter-spacing: -0.02em;
       margin-bottom: 4px;
     }
     #mini-status {
       text-align: center;
-      font-size: 11px;
-      color: #444;
+      font-size: 11px; color: #444;
       letter-spacing: 0.4em;
       text-transform: uppercase;
       margin-bottom: 18px;
     }
-    #dur-card {
+    .dur-card {
       background: #181818;
       border-radius: 18px;
       padding: 18px 16px;
       margin-bottom: 20px;
     }
-    #dur-card h2 {
-      font-size: 11px;
-      color: #555;
+    .dur-card h2 {
+      font-size: 11px; color: #555;
       letter-spacing: 0.25em;
       text-transform: uppercase;
       margin-bottom: 14px;
@@ -94,39 +187,22 @@
       cursor: pointer;
       transition: all .15s;
     }
-    .preset.active {
-      border-color: #4a9eff;
-      background: rgba(74,158,255,.12);
-      color: #4a9eff;
-    }
+    .preset.active { border-color: #4a9eff; background: rgba(74,158,255,.12); color: #4a9eff; }
     .preset:disabled { opacity: .35; cursor: not-allowed; }
-    .spinner-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-    }
-    .spinner {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-    }
+    .spinner-row { display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .spinner { display: flex; flex-direction: column; align-items: center; gap: 6px; }
     .spinner button {
-      width: 44px;
-      height: 32px;
+      width: 44px; height: 32px;
       border: 1px solid #2a2a2a;
       border-radius: 9px;
       background: #202020;
       color: #bbb;
-      font-size: 18px;
-      line-height: 1;
+      font-size: 18px; line-height: 1;
       cursor: pointer;
     }
     .spinner button:disabled { opacity: .35; cursor: not-allowed; }
     .spin-val {
-      font-size: 34px;
-      font-weight: 200;
+      font-size: 34px; font-weight: 200;
       min-width: 56px;
       text-align: center;
       font-variant-numeric: tabular-nums;
@@ -139,15 +215,14 @@
       border-radius: 18px;
       background: #1e6e1e;
       color: #fff;
-      font-size: 19px;
-      font-weight: 600;
+      font-size: 19px; font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
       cursor: pointer;
       transition: transform .1s, background .2s;
     }
-    .btn-main:active   { transform: scale(.97); }
-    .btn-main.pausing  { background: #6e5a10; }
+    .btn-main:active { transform: scale(.97); }
+    .btn-main.pausing { background: #6e5a10; }
     .btn-main:disabled { opacity: .3; cursor: not-allowed; transform: none; }
     .btn-reset {
       padding: 16px;
@@ -155,8 +230,7 @@
       border-radius: 14px;
       background: transparent;
       color: #666;
-      font-size: 15px;
-      font-weight: 500;
+      font-size: 15px; font-weight: 500;
       letter-spacing: 0.1em;
       text-transform: uppercase;
       cursor: pointer;
@@ -164,8 +238,7 @@
     .btn-reset:disabled { opacity: .3; cursor: not-allowed; }
     #conn-bar {
       text-align: center;
-      font-size: 11px;
-      color: #3a3a3a;
+      font-size: 11px; color: #3a3a3a;
       margin-top: 18px;
       letter-spacing: 0.1em;
     }
@@ -183,110 +256,238 @@
   </style>
 </head>
 <body>
-  <h1>Conftimer</h1>
-  <div class="mode-row">
-    <button class="mode-btn active" id="btn-sw"  onclick="sendMode('stopwatch')">▶ Chrono</button>
-    <button class="mode-btn"        id="btn-cd"  onclick="sendMode('countdown')">⏱ Rebours</button>
+
+  <!-- ══ PAYSAGE : affichage plein écran ══ -->
+  <div id="landscape-ui">
+    <div id="ls-mode-label">Chronomètre</div>
+    <div id="ls-time">00:00</div>
+    <div id="ls-status-label">PRÊT</div>
   </div>
-  <div id="mini-time">00:00</div>
-  <div id="mini-status">PRÊT</div>
-  <div id="dur-card">
-    <h2>Durée</h2>
-    <div class="presets" id="presets">
-      <button class="preset" onclick="pickPreset(5)">5 min</button>
-      <button class="preset" onclick="pickPreset(10)">10 min</button>
-      <button class="preset" onclick="pickPreset(15)">15 min</button>
-      <button class="preset" onclick="pickPreset(20)">20 min</button>
-      <button class="preset" onclick="pickPreset(30)">30 min</button>
-      <button class="preset" onclick="pickPreset(45)">45 min</button>
-      <button class="preset" onclick="pickPreset(60)">1 h</button>
-      <button class="preset" onclick="pickPreset(90)">1 h 30</button>
-    </div>
-    <div class="spinner-row">
-      <div class="spinner">
-        <button id="up-min" onclick="spin('min', 1)">▲</button>
-        <div class="spin-val" id="val-min">05</div>
-        <button id="dn-min" onclick="spin('min',-1)">▼</button>
+
+  <!-- Bouton ⚙ fixe (paysage uniquement) -->
+  <button id="btn-settings" onclick="toggleSettings()" aria-label="Réglages">⚙</button>
+
+  <!-- Panneau de réglages (overlay) -->
+  <div id="settings-overlay">
+    <div id="settings-panel">
+      <div class="panel-handle"></div>
+      <div class="mode-row">
+        <button class="mode-btn active" id="ov-btn-sw" onclick="sendMode('stopwatch')">▶ Chrono</button>
+        <button class="mode-btn"        id="ov-btn-cd" onclick="sendMode('countdown')">⏱ Rebours</button>
       </div>
-      <div class="spin-sep">:</div>
-      <div class="spinner">
-        <button id="up-sec" onclick="spin('sec', 5)">▲</button>
-        <div class="spin-val" id="val-sec">00</div>
-        <button id="dn-sec" onclick="spin('sec',-5)">▼</button>
+      <div id="ov-dur-card" class="dur-card" style="display:none;">
+        <h2>Durée</h2>
+        <div class="presets">
+          <button class="preset" data-min="5"  onclick="pickPreset(5)">5 min</button>
+          <button class="preset" data-min="10" onclick="pickPreset(10)">10 min</button>
+          <button class="preset" data-min="15" onclick="pickPreset(15)">15 min</button>
+          <button class="preset" data-min="20" onclick="pickPreset(20)">20 min</button>
+          <button class="preset" data-min="30" onclick="pickPreset(30)">30 min</button>
+          <button class="preset" data-min="45" onclick="pickPreset(45)">45 min</button>
+          <button class="preset" data-min="60" onclick="pickPreset(60)">1 h</button>
+          <button class="preset" data-min="90" onclick="pickPreset(90)">1 h 30</button>
+        </div>
+        <div class="spinner-row">
+          <div class="spinner">
+            <button id="ov-up-min" onclick="spin('min', 1)">▲</button>
+            <div class="spin-val" id="ov-val-min">05</div>
+            <button id="ov-dn-min" onclick="spin('min',-1)">▼</button>
+          </div>
+          <div class="spin-sep">:</div>
+          <div class="spinner">
+            <button id="ov-up-sec" onclick="spin('sec', 5)">▲</button>
+            <div class="spin-val" id="ov-val-sec">00</div>
+            <button id="ov-dn-sec" onclick="spin('sec',-5)">▼</button>
+          </div>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn-main"  id="ov-btn-go"  onclick="goAction()">Démarrer</button>
+        <button class="btn-reset" id="ov-btn-rst" onclick="doReset()" disabled>Réinitialiser</button>
       </div>
     </div>
   </div>
-  <div class="controls">
-    <button class="btn-main" id="btn-go"  onclick="goAction()">Démarrer</button>
-    <button class="btn-reset" id="btn-rst" onclick="doReset()" disabled>Réinitialiser</button>
+
+  <!-- ══ PORTRAIT : interface de contrôle ══ -->
+  <div id="portrait-ui">
+    <h1>Conftimer</h1>
+    <div class="mode-row">
+      <button class="mode-btn active" id="btn-sw" onclick="sendMode('stopwatch')">▶ Chrono</button>
+      <button class="mode-btn"        id="btn-cd" onclick="sendMode('countdown')">⏱ Rebours</button>
+    </div>
+    <div id="mini-time">00:00</div>
+    <div id="mini-status">PRÊT</div>
+    <div id="pt-dur-card" class="dur-card" style="display:none;">
+      <h2>Durée</h2>
+      <div class="presets">
+        <button class="preset" data-min="5"  onclick="pickPreset(5)">5 min</button>
+        <button class="preset" data-min="10" onclick="pickPreset(10)">10 min</button>
+        <button class="preset" data-min="15" onclick="pickPreset(15)">15 min</button>
+        <button class="preset" data-min="20" onclick="pickPreset(20)">20 min</button>
+        <button class="preset" data-min="30" onclick="pickPreset(30)">30 min</button>
+        <button class="preset" data-min="45" onclick="pickPreset(45)">45 min</button>
+        <button class="preset" data-min="60" onclick="pickPreset(60)">1 h</button>
+        <button class="preset" data-min="90" onclick="pickPreset(90)">1 h 30</button>
+      </div>
+      <div class="spinner-row">
+        <div class="spinner">
+          <button id="up-min" onclick="spin('min', 1)">▲</button>
+          <div class="spin-val" id="val-min">05</div>
+          <button id="dn-min" onclick="spin('min',-1)">▼</button>
+        </div>
+        <div class="spin-sep">:</div>
+        <div class="spinner">
+          <button id="up-sec" onclick="spin('sec', 5)">▲</button>
+          <div class="spin-val" id="val-sec">00</div>
+          <button id="dn-sec" onclick="spin('sec',-5)">▼</button>
+        </div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn-main"  id="btn-go"  onclick="goAction()">Démarrer</button>
+      <button class="btn-reset" id="btn-rst" onclick="doReset()" disabled>Réinitialiser</button>
+    </div>
+    <div id="conn-bar"><span class="dot" id="dot"></span><span id="conn-txt">Connexion…</span></div>
   </div>
-  <div id="conn-bar"><span class="dot" id="dot"></span><span id="conn-txt">Connexion…</span></div>
+
   <script>
     let st = { mode: 'stopwatch', duration: 300, elapsed: 0, status: 'idle' };
     let ws, durMin = 5, durSec = 0;
-    const PRESETS = [5, 10, 15, 20, 30, 45, 60, 90];
+
     function tx(msg) { if (ws?.readyState === 1) ws.send(JSON.stringify(msg)); }
-    function pad(n) { return String(n).padStart(2, '0'); }
-    function fmt(s) {
+    function pad(n)  { return String(n).padStart(2, '0'); }
+    function fmt(s)  {
       const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
       return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
     }
-    function sendMode(m) { if (st.status === 'idle') tx({ type: 'setMode', mode: m }); }
+
+    function sendMode(m) {
+      if (st.status === 'idle') tx({ type: 'setMode', mode: m });
+    }
     function pickPreset(min) {
       if (st.status !== 'idle') return;
       durMin = min; durSec = 0;
-      refreshSpinner();
+      refreshSpinners();
       tx({ type: 'setDuration', duration: min * 60 });
     }
     function spin(part, delta) {
       if (st.status !== 'idle') return;
       if (part === 'min') durMin = Math.max(0, Math.min(99, durMin + delta));
-      else               durSec = ((durSec + delta) % 60 + 60) % 60;
-      refreshSpinner();
+      else                durSec = ((durSec + delta) % 60 + 60) % 60;
+      refreshSpinners();
       tx({ type: 'setDuration', duration: durMin * 60 + durSec });
     }
-    function refreshSpinner() {
-      document.getElementById('val-min').textContent = pad(durMin);
-      document.getElementById('val-sec').textContent = pad(durSec);
-      document.querySelectorAll('.preset').forEach((b, i) => {
-        b.classList.toggle('active', PRESETS[i] === durMin && durSec === 0);
+    function refreshSpinners() {
+      ['val-min', 'ov-val-min'].forEach(id => document.getElementById(id).textContent = pad(durMin));
+      ['val-sec', 'ov-val-sec'].forEach(id => document.getElementById(id).textContent = pad(durSec));
+      document.querySelectorAll('.preset[data-min]').forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.min) === durMin && durSec === 0);
       });
     }
+
     function goAction() {
-      if (st.status === 'running')                              tx({ type: 'pause' });
-      else if (st.status === 'idle' || st.status === 'paused') tx({ type: 'start' });
+      if (st.status === 'running') {
+        tx({ type: 'pause' });
+      } else if (st.status === 'idle' || st.status === 'paused') {
+        tx({ type: 'start' });
+        closeSettings();
+      }
     }
     function doReset() { tx({ type: 'reset' }); }
+
+    const overlay = document.getElementById('settings-overlay');
+    function toggleSettings() { overlay.classList.toggle('open'); }
+    function closeSettings()  { overlay.classList.remove('open'); }
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeSettings(); });
+    window.matchMedia('(orientation: portrait)').addEventListener('change', e => {
+      if (e.matches) closeSettings();
+    });
+
+    function setConn(on) {
+      document.getElementById('dot').className = 'dot ' + (on ? 'on' : 'off');
+      document.getElementById('conn-txt').textContent = on ? 'Connecté' : 'Reconnexion…';
+    }
+
+    function applyGoBtn(btn, status) {
+      if      (status === 'running')  { btn.textContent = 'Pause';     btn.className = 'btn-main pausing'; btn.disabled = false; }
+      else if (status === 'finished') { btn.textContent = 'Terminé';   btn.className = 'btn-main';         btn.disabled = true;  }
+      else if (status === 'paused')   { btn.textContent = 'Reprendre'; btn.className = 'btn-main';         btn.disabled = false; }
+      else                            { btn.textContent = 'Démarrer';  btn.className = 'btn-main';         btn.disabled = false; }
+    }
+
     function applyState(s) {
       st = s;
       const idle = s.status === 'idle';
+      const secs = s.mode === 'stopwatch' ? s.elapsed : Math.max(0, s.duration - s.elapsed);
+      const lbls = { idle: 'PRÊT', running: 'EN COURS', paused: 'PAUSE', finished: 'TERMINÉ' };
+
+      // — Portrait —
       document.getElementById('btn-sw').classList.toggle('active', s.mode === 'stopwatch');
       document.getElementById('btn-cd').classList.toggle('active', s.mode === 'countdown');
       document.getElementById('btn-sw').disabled = !idle;
       document.getElementById('btn-cd').disabled = !idle;
-      document.getElementById('dur-card').style.display = s.mode === 'countdown' ? '' : 'none';
-      document.querySelectorAll('.spinner button, .preset').forEach(b => b.disabled = !idle);
-      const secs = s.mode === 'stopwatch' ? s.elapsed : Math.max(0, s.duration - s.elapsed);
-      document.getElementById('mini-time').textContent = fmt(secs);
-      const lbl = { idle: 'PRÊT', running: 'EN COURS', paused: 'PAUSE', finished: 'TERMINÉ' };
-      document.getElementById('mini-status').textContent = lbl[s.status] ?? '';
-      const go = document.getElementById('btn-go');
-      if (s.status === 'running')       { go.textContent = 'Pause';     go.className = 'btn-main pausing'; go.disabled = false; }
-      else if (s.status === 'finished') { go.textContent = 'Terminé';  go.className = 'btn-main';         go.disabled = true;  }
-      else if (s.status === 'paused')   { go.textContent = 'Reprendre'; go.className = 'btn-main';        go.disabled = false; }
-      else                              { go.textContent = 'Démarrer'; go.className = 'btn-main';         go.disabled = false; }
+      document.getElementById('pt-dur-card').style.display = s.mode === 'countdown' ? '' : 'none';
+      ['up-min','dn-min','up-sec','dn-sec'].forEach(id => document.getElementById(id).disabled = !idle);
+      document.querySelectorAll('#pt-dur-card .preset').forEach(b => b.disabled = !idle);
+      document.getElementById('mini-time').textContent    = fmt(secs);
+      document.getElementById('mini-status').textContent  = lbls[s.status] ?? '';
+      applyGoBtn(document.getElementById('btn-go'), s.status);
       document.getElementById('btn-rst').disabled = idle;
+
+      // — Paysage : grand affichage —
+      document.getElementById('ls-mode-label').textContent   = s.mode === 'stopwatch' ? 'Chronomètre' : 'Compte à rebours';
+      document.getElementById('ls-status-label').textContent = lbls[s.status] ?? '';
+      const lsTime = document.getElementById('ls-time');
+      lsTime.textContent = fmt(secs);
+      if (s.mode === 'stopwatch') {
+        lsTime.style.color = '#fff';
+        lsTime.classList.remove('blink');
+      } else {
+        const ratio = s.duration > 0 ? secs / s.duration : 1;
+        if      (s.status === 'finished' || secs === 0) lsTime.style.color = '#e03020';
+        else if (ratio < 0.1)                            lsTime.style.color = '#f07020';
+        else if (ratio < 0.3)                            lsTime.style.color = '#f0c040';
+        else                                             lsTime.style.color = '#fff';
+        lsTime.classList.toggle('blink', s.status === 'finished');
+      }
+
+      // — Overlay : panneau de réglages —
+      document.getElementById('ov-btn-sw').classList.toggle('active', s.mode === 'stopwatch');
+      document.getElementById('ov-btn-cd').classList.toggle('active', s.mode === 'countdown');
+      document.getElementById('ov-btn-sw').disabled = !idle;
+      document.getElementById('ov-btn-cd').disabled = !idle;
+      document.getElementById('ov-dur-card').style.display = s.mode === 'countdown' ? '' : 'none';
+      ['ov-up-min','ov-dn-min','ov-up-sec','ov-dn-sec'].forEach(id => document.getElementById(id).disabled = !idle);
+      document.querySelectorAll('#ov-dur-card .preset').forEach(b => b.disabled = !idle);
+      applyGoBtn(document.getElementById('ov-btn-go'), s.status);
+      document.getElementById('ov-btn-rst').disabled = idle;
+
+      // Sync spinner depuis l'état serveur quand idle (ex : autre appareil a changé la durée)
+      if (idle) {
+        durMin = Math.floor(s.duration / 60);
+        durSec = s.duration % 60;
+        refreshSpinners();
+      }
     }
+
     function connect() {
       const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
       ws = new WebSocket(`${proto}//${location.host}`);
-      ws.onopen    = () => { document.getElementById('dot').className = 'dot on';  document.getElementById('conn-txt').textContent = 'Connecté'; };
+      ws.onopen    = () => setConn(true);
       ws.onmessage = (e) => { const d = JSON.parse(e.data); if (d.type === 'state') applyState(d); };
-      ws.onclose   = () => { document.getElementById('dot').className = 'dot off'; document.getElementById('conn-txt').textContent = 'Reconnexion…'; setTimeout(connect, 2000); };
+      ws.onclose   = () => { setConn(false); setTimeout(connect, 2000); };
       ws.onerror   = () => ws.close();
     }
-    refreshSpinner();
-    document.getElementById('dur-card').style.display = 'none';
+
+    if ('wakeLock' in navigator) {
+      const keepAwake = () => navigator.wakeLock.request('screen').catch(() => {});
+      keepAwake();
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') keepAwake();
+      });
+    }
+
+    refreshSpinners();
     connect();
   </script>
 </body>
