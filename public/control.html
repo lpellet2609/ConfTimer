@@ -50,9 +50,16 @@
     }
     @keyframes blink {
       0%, 100% { opacity: 1; }
-      50%       { opacity: 0.15; }
+      50%       { opacity: 0.1; }
     }
     .blink { animation: blink 1s ease-in-out infinite; }
+    .overtime {
+      color: #e03020 !important;
+      border: 4px solid #e03020;
+      border-radius: 16px;
+      padding: 0.08em 0.22em;
+      box-shadow: 0 0 48px rgba(224, 48, 32, 0.35);
+    }
 
     /* ─── Bouton ⚙ (paysage uniquement) ─── */
     #btn-settings {
@@ -438,17 +445,17 @@
       document.getElementById('ls-mode-label').textContent   = s.mode === 'stopwatch' ? 'Chronomètre' : 'Compte à rebours';
       document.getElementById('ls-status-label').textContent = lbls[s.status] ?? '';
       const lsTime = document.getElementById('ls-time');
-      lsTime.textContent = fmt(secs);
+      lsTime.className = '';
+      lsTime.style.color = '#fff';
       if (s.mode === 'stopwatch') {
-        lsTime.style.color = '#fff';
-        lsTime.classList.remove('blink');
+        lsTime.textContent = fmt(secs);
+      } else if (s.status === 'finished') {
+        const overtime = s.elapsed - s.duration;
+        lsTime.textContent = '-' + fmt(overtime);
+        lsTime.classList.add('overtime');
       } else {
-        const ratio = s.duration > 0 ? secs / s.duration : 1;
-        if      (s.status === 'finished' || secs === 0) lsTime.style.color = '#e03020';
-        else if (ratio < 0.1)                            lsTime.style.color = '#f07020';
-        else if (ratio < 0.3)                            lsTime.style.color = '#f0c040';
-        else                                             lsTime.style.color = '#fff';
-        lsTime.classList.toggle('blink', s.status === 'finished');
+        lsTime.textContent = fmt(secs);
+        if (secs <= 60) lsTime.classList.add('blink');
       }
 
       // — Overlay : panneau de réglages —

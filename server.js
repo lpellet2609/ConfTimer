@@ -31,11 +31,8 @@ function broadcast(data) {
 
 function tick() {
   state.elapsed++;
-  if (state.mode === 'countdown' && state.elapsed >= state.duration) {
-    state.elapsed = state.duration;
+  if (state.mode === 'countdown' && state.elapsed === state.duration) {
     state.status = 'finished';
-    clearInterval(ticker);
-    ticker = null;
   }
   broadcast({ type: 'state', ...state });
 }
