@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Conftimer — Affichage</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0d0d0d;
+      color: #fff;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      user-select: none;
+    }
+    #mode-label {
+      font-size: clamp(14px, 2.5vw, 28px);
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 4vh;
+    }
+    #time {
+      font-size: clamp(80px, 26vw, 340px);
+      font-weight: 100;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      transition: color 0.8s ease;
+    }
+    #status-label {
+      font-size: clamp(12px, 1.8vw, 22px);
+      letter-spacing: 0.6em;
+      text-transform: uppercase;
+      color: #3a3a3a;
+      margin-top: 4vh;
+    }
+    #conn-dot {
+      position: fixed;
+      top: 18px;
+      right: 22px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #2a2a2a;
+      transition: background 0.4s;
+    }
+    #conn-dot.on  { background: #2d8f2d; }
+    #conn-dot.off { background: #8f2d2d; }
+    .white   { color: #ffffff; }
+    .yellow  { color: #f0c040; }
+    .orange  { color: #f07020; }
+    .red     { color: #e03020; }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.15; }
+    }
+    .blink { animation: blink 1s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+  <div id="mode-label">Chronomètre</div>
+  <div id="time" class="white">00:00</div>
+  <div id="status-label">PRÊT</div>
+  <div id="conn-dot"></div>
+  <script>
+    const timeEl   = document.getElementById('time');
+    const modeEl   = document.getElementById('mode-label');
+    const statusEl = document.getElementById('status-label');
+    const connDot  = document.getElementById('conn-dot');
+    if ('wakeLock' in navigator) {
+      const keepAwake = () => navigator.wakeLock.request('screen').catch(() => {});
+      keepAwake();
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') keepAwake();
+      });
+    }
+    function fmt(s) {
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+      if (h > 0) return `${h}:${pad(m)}:${pad(sec)}`;
+      return `${pad(m)}:${pad(sec)}`;
+    }
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function applyState(st) {
+      modeEl.textContent = st.mode === 'stopwatch' ? 'Chronomètre' : 'Compte à rebours';
+      let secs;
+      if (st.mode === 'stopwatch') {
+        secs = st.elapsed;
+        timeEl.className = 'white';
+      } else {
+        secs = Math.max(0, st.duration - st.elapsed);
+        const ratio = st.duration > 0 ? secs / st.duration : 1;
+        if (st.status === 'finished' || secs === 0) timeEl.className = 'red';
+        else if (ratio < 0.1)                       timeEl.className = 'orange';
+        else if (ratio < 0.3)                       timeEl.className = 'yellow';
+        else                                         timeEl.className = 'white';
+      }
+      timeEl.textContent = fmt(secs);
+      if (st.status === 'finished') timeEl.classList.add('blink');
+      else                          timeEl.classList.remove('blink');
+      const labels = { idle: 'PRÊT', running: 'EN COURS', paused: 'PAUSE', finished: 'TERMINÉ' };
+      statusEl.textContent = labels[st.status] ?? '';
+    }
+    function connect() {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(`${proto}//${location.host}`);
+      ws.onopen    = () => connDot.className = 'on';
+      ws.onmessage = (e) => { const d = JSON.parse(e.data); if (d.type === 'state') applyState(d); };
+      ws.onclose   = () => { connDot.className = 'off'; setTimeout(connect, 2000); };
+      ws.onerror   = () => ws.close();
+    }
+    connect();
+  </script>
+</body>
+</html>
