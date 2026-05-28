@@ -427,13 +427,22 @@
       ws.onerror   = () => ws.close();
     }
 
-    if ('wakeLock' in navigator) {
-      const keepAwake = () => navigator.wakeLock.request('screen').catch(() => {});
-      keepAwake();
+    (function() {
+      let sentinel = null;
+      async function lock() {
+        if (!('wakeLock' in navigator)) return;
+        try {
+          sentinel = await navigator.wakeLock.request('screen');
+          sentinel.addEventListener('release', () => {
+            if (document.visibilityState === 'visible') lock();
+          });
+        } catch (_) {}
+      }
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') keepAwake();
+        if (document.visibilityState === 'visible') lock();
       });
-    }
+      lock();
+    })();
 
     refreshSpinners();
     connect();
