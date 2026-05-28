@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Conftimer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      background: #111;
+      color: #fff;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      min-height: 100dvh;
+      padding: 20px 16px;
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+    }
+    h1 {
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      color: #555;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .mode-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .mode-btn {
+      padding: 15px 8px;
+      border: 2px solid #2a2a2a;
+      border-radius: 14px;
+      background: transparent;
+      color: #666;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color .2s, color .2s, background .2s;
+    }
+    .mode-btn.active {
+      border-color: #4a9eff;
+      color: #4a9eff;
+      background: rgba(74,158,255,.08);
+    }
+    .mode-btn:disabled { opacity: .35; cursor: not-allowed; }
+    #mini-time {
+      text-align: center;
+      font-size: 56px;
+      font-weight: 100;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+    #mini-status {
+      text-align: center;
+      font-size: 11px;
+      color: #444;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    #dur-card {
+      background: #181818;
+      border-radius: 18px;
+      padding: 18px 16px;
+      margin-bottom: 20px;
+    }
+    #dur-card h2 {
+      font-size: 11px;
+      color: #555;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .presets {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .preset {
+      padding: 11px 4px;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      background: #202020;
+      color: #aaa;
+      font-size: 13px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .preset.active {
+      border-color: #4a9eff;
+      background: rgba(74,158,255,.12);
+      color: #4a9eff;
+    }
+    .preset:disabled { opacity: .35; cursor: not-allowed; }
+    .spinner-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .spinner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .spinner button {
+      width: 44px;
+      height: 32px;
+      border: 1px solid #2a2a2a;
+      border-radius: 9px;
+      background: #202020;
+      color: #bbb;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .spinner button:disabled { opacity: .35; cursor: not-allowed; }
+    .spin-val {
+      font-size: 34px;
+      font-weight: 200;
+      min-width: 56px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .spin-sep { font-size: 28px; color: #444; padding-bottom: 2px; }
+    .controls { display: flex; flex-direction: column; gap: 12px; }
+    .btn-main {
+      padding: 22px;
+      border: none;
+      border-radius: 18px;
+      background: #1e6e1e;
+      color: #fff;
+      font-size: 19px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform .1s, background .2s;
+    }
+    .btn-main:active   { transform: scale(.97); }
+    .btn-main.pausing  { background: #6e5a10; }
+    .btn-main:disabled { opacity: .3; cursor: not-allowed; transform: none; }
+    .btn-reset {
+      padding: 16px;
+      border: 2px solid #2a2a2a;
+      border-radius: 14px;
+      background: transparent;
+      color: #666;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .btn-reset:disabled { opacity: .3; cursor: not-allowed; }
+    #conn-bar {
+      text-align: center;
+      font-size: 11px;
+      color: #3a3a3a;
+      margin-top: 18px;
+      letter-spacing: 0.1em;
+    }
+    .dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #2a2a2a;
+      margin-right: 5px;
+      vertical-align: middle;
+      transition: background .4s;
+    }
+    .dot.on  { background: #2d8f2d; }
+    .dot.off { background: #8f2d2d; }
+  </style>
+</head>
+<body>
+  <h1>Conftimer</h1>
+  <div class="mode-row">
+    <button class="mode-btn active" id="btn-sw"  onclick="sendMode('stopwatch')">▶ Chrono</button>
+    <button class="mode-btn"        id="btn-cd"  onclick="sendMode('countdown')">⏱ Rebours</button>
+  </div>
+  <div id="mini-time">00:00</div>
+  <div id="mini-status">PRÊT</div>
+  <div id="dur-card">
+    <h2>Durée</h2>
+    <div class="presets" id="presets">
+      <button class="preset" onclick="pickPreset(5)">5 min</button>
+      <button class="preset" onclick="pickPreset(10)">10 min</button>
+      <button class="preset" onclick="pickPreset(15)">15 min</button>
+      <button class="preset" onclick="pickPreset(20)">20 min</button>
+      <button class="preset" onclick="pickPreset(30)">30 min</button>
+      <button class="preset" onclick="pickPreset(45)">45 min</button>
+      <button class="preset" onclick="pickPreset(60)">1 h</button>
+      <button class="preset" onclick="pickPreset(90)">1 h 30</button>
+    </div>
+    <div class="spinner-row">
+      <div class="spinner">
+        <button id="up-min" onclick="spin('min', 1)">▲</button>
+        <div class="spin-val" id="val-min">05</div>
+        <button id="dn-min" onclick="spin('min',-1)">▼</button>
+      </div>
+      <div class="spin-sep">:</div>
+      <div class="spinner">
+        <button id="up-sec" onclick="spin('sec', 5)">▲</button>
+        <div class="spin-val" id="val-sec">00</div>
+        <button id="dn-sec" onclick="spin('sec',-5)">▼</button>
+      </div>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="btn-main" id="btn-go"  onclick="goAction()">Démarrer</button>
+    <button class="btn-reset" id="btn-rst" onclick="doReset()" disabled>Réinitialiser</button>
+  </div>
+  <div id="conn-bar"><span class="dot" id="dot"></span><span id="conn-txt">Connexion…</span></div>
+  <script>
+    let st = { mode: 'stopwatch', duration: 300, elapsed: 0, status: 'idle' };
+    let ws, durMin = 5, durSec = 0;
+    const PRESETS = [5, 10, 15, 20, 30, 45, 60, 90];
+    function tx(msg) { if (ws?.readyState === 1) ws.send(JSON.stringify(msg)); }
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function fmt(s) {
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+      return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
+    }
+    function sendMode(m) { if (st.status === 'idle') tx({ type: 'setMode', mode: m }); }
+    function pickPreset(min) {
+      if (st.status !== 'idle') return;
+      durMin = min; durSec = 0;
+      refreshSpinner();
+      tx({ type: 'setDuration', duration: min * 60 });
+    }
+    function spin(part, delta) {
+      if (st.status !== 'idle') return;
+      if (part === 'min') durMin = Math.max(0, Math.min(99, durMin + delta));
+      else               durSec = ((durSec + delta) % 60 + 60) % 60;
+      refreshSpinner();
+      tx({ type: 'setDuration', duration: durMin * 60 + durSec });
+    }
+    function refreshSpinner() {
+      document.getElementById('val-min').textContent = pad(durMin);
+      document.getElementById('val-sec').textContent = pad(durSec);
+      document.querySelectorAll('.preset').forEach((b, i) => {
+        b.classList.toggle('active', PRESETS[i] === durMin && durSec === 0);
+      });
+    }
+    function goAction() {
+      if (st.status === 'running')                              tx({ type: 'pause' });
+      else if (st.status === 'idle' || st.status === 'paused') tx({ type: 'start' });
+    }
+    function doReset() { tx({ type: 'reset' }); }
+    function applyState(s) {
+      st = s;
+      const idle = s.status === 'idle';
+      document.getElementById('btn-sw').classList.toggle('active', s.mode === 'stopwatch');
+      document.getElementById('btn-cd').classList.toggle('active', s.mode === 'countdown');
+      document.getElementById('btn-sw').disabled = !idle;
+      document.getElementById('btn-cd').disabled = !idle;
+      document.getElementById('dur-card').style.display = s.mode === 'countdown' ? '' : 'none';
+      document.querySelectorAll('.spinner button, .preset').forEach(b => b.disabled = !idle);
+      const secs = s.mode === 'stopwatch' ? s.elapsed : Math.max(0, s.duration - s.elapsed);
+      document.getElementById('mini-time').textContent = fmt(secs);
+      const lbl = { idle: 'PRÊT', running: 'EN COURS', paused: 'PAUSE', finished: 'TERMINÉ' };
+      document.getElementById('mini-status').textContent = lbl[s.status] ?? '';
+      const go = document.getElementById('btn-go');
+      if (s.status === 'running')       { go.textContent = 'Pause';     go.className = 'btn-main pausing'; go.disabled = false; }
+      else if (s.status === 'finished') { go.textContent = 'Terminé';  go.className = 'btn-main';         go.disabled = true;  }
+      else if (s.status === 'paused')   { go.textContent = 'Reprendre'; go.className = 'btn-main';        go.disabled = false; }
+      else                              { go.textContent = 'Démarrer'; go.className = 'btn-main';         go.disabled = false; }
+      document.getElementById('btn-rst').disabled = idle;
+    }
+    function connect() {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${proto}//${location.host}`);
+      ws.onopen    = () => { document.getElementById('dot').className = 'dot on';  document.getElementById('conn-txt').textContent = 'Connecté'; };
+      ws.onmessage = (e) => { const d = JSON.parse(e.data); if (d.type === 'state') applyState(d); };
+      ws.onclose   = () => { document.getElementById('dot').className = 'dot off'; document.getElementById('conn-txt').textContent = 'Reconnexion…'; setTimeout(connect, 2000); };
+      ws.onerror   = () => ws.close();
+    }
+    refreshSpinner();
+    document.getElementById('dur-card').style.display = 'none';
+    connect();
+  </script>
+</body>
+</html>
