@@ -1,0 +1,9 @@
+{
+  "name": "Conftimer",
+  "short_name": "Conftimer",
+  "display": "fullscreen",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "start_url": "/control",
+  "icons": []
+}

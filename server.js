@@ -84,6 +84,17 @@ wss.on('connection', (ws) => {
           state.status = 'idle';
           broadcast({ type: 'state', ...state });
           break;
+        case 'adjustDuration':
+          if (state.mode === 'countdown') {
+            state.duration = Math.max(1, state.duration + msg.delta);
+            if (state.status === 'running' && state.elapsed >= state.duration) {
+              state.status = 'finished';
+            } else if (state.status === 'finished' && state.elapsed < state.duration) {
+              state.status = 'running';
+            }
+            broadcast({ type: 'state', ...state });
+          }
+          break;
       }
     } catch (e) {}
   });

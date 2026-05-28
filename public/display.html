@@ -18,12 +18,26 @@
       overflow: hidden;
       user-select: none;
     }
+    #timer-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border: 4px solid transparent;
+      border-radius: 20px;
+      padding: 16px 36px;
+      transition: border-color .5s, box-shadow .5s;
+    }
+    #timer-box.overtime-box {
+      border-color: #e03020;
+      box-shadow: 0 0 56px rgba(224,48,32,0.4);
+    }
     #mode-label {
       font-size: clamp(14px, 2.5vw, 28px);
       letter-spacing: 0.4em;
       text-transform: uppercase;
       color: #555;
       margin-bottom: 4vh;
+      transition: color .4s;
     }
     #time {
       font-size: clamp(80px, 26vw, 340px);
@@ -32,7 +46,7 @@
       line-height: 1;
       font-variant-numeric: tabular-nums;
       font-feature-settings: "tnum";
-      transition: color 0.4s ease, border-color 0.4s ease;
+      transition: color 0.4s;
       color: #fff;
     }
     #status-label {
@@ -57,21 +71,17 @@
       50%       { opacity: 0.1; }
     }
     .blink { animation: blink 1s ease-in-out infinite; }
-    .overtime {
-      color: #e03020 !important;
-      border: 4px solid #e03020;
-      border-radius: 16px;
-      padding: 0.08em 0.22em;
-      box-shadow: 0 0 48px rgba(224, 48, 32, 0.35);
-    }
   </style>
 </head>
 <body>
-  <div id="mode-label">Chronomètre</div>
-  <div id="time">00:00</div>
+  <div id="timer-box">
+    <div id="mode-label">Chronomètre</div>
+    <div id="time">00:00</div>
+  </div>
   <div id="status-label">PRÊT</div>
   <div id="conn-dot"></div>
   <script>
+    const timerBox = document.getElementById('timer-box');
     const timeEl   = document.getElementById('time');
     const modeEl   = document.getElementById('mode-label');
     const statusEl = document.getElementById('status-label');
@@ -92,22 +102,30 @@
     }
 
     function applyState(st) {
-      modeEl.textContent = st.mode === 'stopwatch' ? 'Chronomètre' : 'Compte à rebours';
       const lbls = { idle: 'PRÊT', running: 'EN COURS', paused: 'PAUSE', finished: 'TERMINÉ' };
       statusEl.textContent = lbls[st.status] ?? '';
 
       timeEl.className = '';
-      timeEl.style.color = '#fff';
+      timerBox.classList.remove('overtime-box');
 
       if (st.mode === 'stopwatch') {
-        timeEl.textContent = fmt(st.elapsed);
+        modeEl.textContent   = 'Chronomètre';
+        modeEl.style.color   = '#555';
+        timeEl.style.color   = '#fff';
+        timeEl.textContent   = fmt(st.elapsed);
       } else if (st.status === 'finished') {
-        const overtime = st.elapsed - st.duration;
-        timeEl.textContent = '-' + fmt(overtime);
-        timeEl.classList.add('overtime');
+        const overtime       = st.elapsed - st.duration;
+        modeEl.textContent   = 'DÉPASSEMENT';
+        modeEl.style.color   = '#e03020';
+        timeEl.style.color   = '#e03020';
+        timeEl.textContent   = '-' + fmt(overtime);
+        timerBox.classList.add('overtime-box');
       } else {
-        const secs = Math.max(0, st.duration - st.elapsed);
-        timeEl.textContent = fmt(secs);
+        const secs           = Math.max(0, st.duration - st.elapsed);
+        modeEl.textContent   = 'Compte à rebours';
+        modeEl.style.color   = '#555';
+        timeEl.style.color   = '#fff';
+        timeEl.textContent   = fmt(secs);
         if (secs <= 60) timeEl.classList.add('blink');
       }
     }

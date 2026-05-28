@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="theme-color" content="#111111">
+  <link rel="manifest" href="/manifest.json">
   <title>Conftimer</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -24,21 +28,35 @@
       #landscape-ui { display: flex; }
       #portrait-ui  { display: none !important; }
     }
+    #ls-timer-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border: 4px solid transparent;
+      border-radius: 20px;
+      padding: 2vh 3vw;
+      transition: border-color .5s, box-shadow .5s;
+    }
+    #ls-timer-box.overtime-box {
+      border-color: #e03020;
+      box-shadow: 0 0 56px rgba(224,48,32,0.4);
+    }
     #ls-mode-label {
       font-size: clamp(14px, 2.5vw, 28px);
       letter-spacing: 0.4em;
       text-transform: uppercase;
       color: #555;
-      margin-bottom: 3vh;
+      margin-bottom: 2vh;
+      transition: color .4s;
     }
     #ls-time {
       font-size: clamp(80px, 22vw, 320px);
-      font-weight: 100;
+      font-weight: 300;
       letter-spacing: -0.02em;
       line-height: 1;
       font-variant-numeric: tabular-nums;
       font-feature-settings: "tnum";
-      transition: color 0.8s ease;
+      transition: color 0.4s;
       color: #fff;
     }
     #ls-status-label {
@@ -53,16 +71,9 @@
       50%       { opacity: 0.1; }
     }
     .blink { animation: blink 1s ease-in-out infinite; }
-    .overtime {
-      color: #e03020 !important;
-      border: 4px solid #e03020;
-      border-radius: 16px;
-      padding: 0.08em 0.22em;
-      box-shadow: 0 0 48px rgba(224, 48, 32, 0.35);
-    }
 
-    /* ─── Bouton ⚙ (paysage uniquement) ─── */
-    #btn-settings {
+    /* ─── Bouton plein écran (paysage uniquement) ─── */
+    #btn-fullscreen {
       position: fixed;
       top: max(14px, env(safe-area-inset-top, 14px));
       right: max(16px, env(safe-area-inset-right, 16px));
@@ -70,52 +81,17 @@
       border: none;
       background: rgba(255,255,255,.07);
       color: #555;
-      font-size: 18px;
+      font-size: 16px;
       border-radius: 50%;
       cursor: pointer;
       z-index: 10;
       display: none;
       align-items: center;
       justify-content: center;
-      transition: background .2s, color .2s;
+      transition: background .2s, color .2s, opacity .3s;
     }
-    #btn-settings:active { background: rgba(255,255,255,.16); color: #aaa; }
-    @media (orientation: landscape) { #btn-settings { display: flex; } }
-
-    /* ─── Overlay réglages ─── */
-    #settings-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.72);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      z-index: 50;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .22s;
-    }
-    #settings-overlay.open { opacity: 1; pointer-events: auto; }
-    #settings-panel {
-      background: #1a1a1a;
-      border-radius: 24px 24px 0 0;
-      padding: 14px 16px max(20px, env(safe-area-inset-bottom, 20px));
-      width: 100%;
-      max-width: 500px;
-      max-height: 88dvh;
-      overflow-y: auto;
-      transform: translateY(24px);
-      transition: transform .22s;
-    }
-    #settings-overlay.open #settings-panel { transform: translateY(0); }
-    .panel-handle {
-      width: 36px; height: 4px;
-      background: #2e2e2e;
-      border-radius: 2px;
-      margin: 0 auto 18px;
-    }
+    #btn-fullscreen:active { background: rgba(255,255,255,.16); color: #aaa; }
+    @media (orientation: landscape) { #btn-fullscreen { display: flex; } }
 
     /* ─── Portrait : interface de contrôle ─── */
     body { background: #111; color: #fff; font-family: 'Helvetica Neue', Arial, sans-serif; }
@@ -163,8 +139,27 @@
       font-size: 11px; color: #444;
       letter-spacing: 0.4em;
       text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    /* Boutons d'ajustement de durée */
+    .adj-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
       margin-bottom: 18px;
     }
+    .adj-btn {
+      padding: 13px 4px;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      background: #1a1a1a;
+      color: #aaa;
+      font-size: 13px;
+      text-align: center;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .adj-btn:active { background: #2a2a2a; }
     .dur-card {
       background: #181818;
       border-radius: 18px;
@@ -266,54 +261,15 @@
 
   <!-- ══ PAYSAGE : affichage plein écran ══ -->
   <div id="landscape-ui">
-    <div id="ls-mode-label">Chronomètre</div>
-    <div id="ls-time">00:00</div>
+    <div id="ls-timer-box">
+      <div id="ls-mode-label">Chronomètre</div>
+      <div id="ls-time">00:00</div>
+    </div>
     <div id="ls-status-label">PRÊT</div>
   </div>
 
-  <!-- Bouton ⚙ fixe (paysage uniquement) -->
-  <button id="btn-settings" onclick="toggleSettings()" aria-label="Réglages">⚙</button>
-
-  <!-- Panneau de réglages (overlay) -->
-  <div id="settings-overlay">
-    <div id="settings-panel">
-      <div class="panel-handle"></div>
-      <div class="mode-row">
-        <button class="mode-btn active" id="ov-btn-sw" onclick="sendMode('stopwatch')">▶ Chrono</button>
-        <button class="mode-btn"        id="ov-btn-cd" onclick="sendMode('countdown')">⏱ Rebours</button>
-      </div>
-      <div id="ov-dur-card" class="dur-card" style="display:none;">
-        <h2>Durée</h2>
-        <div class="presets">
-          <button class="preset" data-min="5"  onclick="pickPreset(5)">5 min</button>
-          <button class="preset" data-min="10" onclick="pickPreset(10)">10 min</button>
-          <button class="preset" data-min="15" onclick="pickPreset(15)">15 min</button>
-          <button class="preset" data-min="20" onclick="pickPreset(20)">20 min</button>
-          <button class="preset" data-min="30" onclick="pickPreset(30)">30 min</button>
-          <button class="preset" data-min="45" onclick="pickPreset(45)">45 min</button>
-          <button class="preset" data-min="60" onclick="pickPreset(60)">1 h</button>
-          <button class="preset" data-min="90" onclick="pickPreset(90)">1 h 30</button>
-        </div>
-        <div class="spinner-row">
-          <div class="spinner">
-            <button id="ov-up-min" onclick="spin('min', 1)">▲</button>
-            <div class="spin-val" id="ov-val-min">05</div>
-            <button id="ov-dn-min" onclick="spin('min',-1)">▼</button>
-          </div>
-          <div class="spin-sep">:</div>
-          <div class="spinner">
-            <button id="ov-up-sec" onclick="spin('sec', 5)">▲</button>
-            <div class="spin-val" id="ov-val-sec">00</div>
-            <button id="ov-dn-sec" onclick="spin('sec',-5)">▼</button>
-          </div>
-        </div>
-      </div>
-      <div class="controls">
-        <button class="btn-main"  id="ov-btn-go"  onclick="goAction()">Démarrer</button>
-        <button class="btn-reset" id="ov-btn-rst" onclick="doReset()" disabled>Réinitialiser</button>
-      </div>
-    </div>
-  </div>
+  <!-- Bouton plein écran (paysage uniquement) -->
+  <button id="btn-fullscreen" onclick="toggleFullscreen()" aria-label="Plein écran">⛶</button>
 
   <!-- ══ PORTRAIT : interface de contrôle ══ -->
   <div id="portrait-ui">
@@ -324,6 +280,16 @@
     </div>
     <div id="mini-time">00:00</div>
     <div id="mini-status">PRÊT</div>
+
+    <!-- Ajustement de durée (visible en rebours hors idle) -->
+    <div class="adj-row" id="pt-adj-row" style="display:none;">
+      <button class="adj-btn" onclick="adjust(-300)">−5 min</button>
+      <button class="adj-btn" onclick="adjust(-60)">−1 min</button>
+      <button class="adj-btn" onclick="adjust(60)">+1 min</button>
+      <button class="adj-btn" onclick="adjust(300)">+5 min</button>
+    </div>
+
+    <!-- Réglage durée (visible en rebours idle) -->
     <div id="pt-dur-card" class="dur-card" style="display:none;">
       <h2>Durée</h2>
       <div class="presets">
@@ -350,6 +316,7 @@
         </div>
       </div>
     </div>
+
     <div class="controls">
       <button class="btn-main"  id="btn-go"  onclick="goAction()">Démarrer</button>
       <button class="btn-reset" id="btn-rst" onclick="doReset()" disabled>Réinitialiser</button>
@@ -385,30 +352,40 @@
       tx({ type: 'setDuration', duration: durMin * 60 + durSec });
     }
     function refreshSpinners() {
-      ['val-min', 'ov-val-min'].forEach(id => document.getElementById(id).textContent = pad(durMin));
-      ['val-sec', 'ov-val-sec'].forEach(id => document.getElementById(id).textContent = pad(durSec));
+      document.getElementById('val-min').textContent = pad(durMin);
+      document.getElementById('val-sec').textContent = pad(durSec);
       document.querySelectorAll('.preset[data-min]').forEach(b => {
         b.classList.toggle('active', parseInt(b.dataset.min) === durMin && durSec === 0);
       });
     }
-
+    function adjust(delta) { tx({ type: 'adjustDuration', delta }); }
     function goAction() {
       if (st.status === 'running') {
         tx({ type: 'pause' });
       } else if (st.status === 'idle' || st.status === 'paused') {
         tx({ type: 'start' });
-        closeSettings();
       }
     }
     function doReset() { tx({ type: 'reset' }); }
 
-    const overlay = document.getElementById('settings-overlay');
-    function toggleSettings() { overlay.classList.toggle('open'); }
-    function closeSettings()  { overlay.classList.remove('open'); }
-    overlay.addEventListener('click', e => { if (e.target === overlay) closeSettings(); });
-    window.matchMedia('(orientation: portrait)').addEventListener('change', e => {
-      if (e.matches) closeSettings();
-    });
+    function toggleFullscreen() {
+      const el = document.documentElement;
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        (document.exitFullscreen || document.webkitExitFullscreen || (() => {})).call(document);
+      } else {
+        if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      }
+    }
+    function updateFsBtn() {
+      const btn = document.getElementById('btn-fullscreen');
+      const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      btn.style.opacity = isFs ? '0' : '1';
+      btn.style.pointerEvents = isFs ? 'none' : 'auto';
+      btn.textContent = isFs ? '⊠' : '⛶';
+    }
+    document.addEventListener('fullscreenchange', updateFsBtn);
+    document.addEventListener('webkitfullscreenchange', updateFsBtn);
 
     function setConn(on) {
       document.getElementById('dot').className = 'dot ' + (on ? 'on' : 'off');
@@ -433,43 +410,48 @@
       document.getElementById('btn-cd').classList.toggle('active', s.mode === 'countdown');
       document.getElementById('btn-sw').disabled = !idle;
       document.getElementById('btn-cd').disabled = !idle;
-      document.getElementById('pt-dur-card').style.display = s.mode === 'countdown' ? '' : 'none';
+
+      const showAdj  = s.mode === 'countdown' && !idle;
+      const showDur  = s.mode === 'countdown' && idle;
+      document.getElementById('pt-adj-row').style.display  = showAdj  ? '' : 'none';
+      document.getElementById('pt-dur-card').style.display = showDur  ? '' : 'none';
       ['up-min','dn-min','up-sec','dn-sec'].forEach(id => document.getElementById(id).disabled = !idle);
       document.querySelectorAll('#pt-dur-card .preset').forEach(b => b.disabled = !idle);
-      document.getElementById('mini-time').textContent    = fmt(secs);
-      document.getElementById('mini-status').textContent  = lbls[s.status] ?? '';
+
+      document.getElementById('mini-time').textContent   = fmt(secs);
+      document.getElementById('mini-status').textContent = lbls[s.status] ?? '';
       applyGoBtn(document.getElementById('btn-go'), s.status);
       document.getElementById('btn-rst').disabled = idle;
 
       // — Paysage : grand affichage —
-      document.getElementById('ls-mode-label').textContent   = s.mode === 'stopwatch' ? 'Chronomètre' : 'Compte à rebours';
-      document.getElementById('ls-status-label').textContent = lbls[s.status] ?? '';
+      const lsBox  = document.getElementById('ls-timer-box');
       const lsTime = document.getElementById('ls-time');
+      const lsMode = document.getElementById('ls-mode-label');
       lsTime.className = '';
-      lsTime.style.color = '#fff';
+      lsBox.classList.remove('overtime-box');
+      document.getElementById('ls-status-label').textContent = lbls[s.status] ?? '';
+
       if (s.mode === 'stopwatch') {
+        lsMode.textContent = 'Chronomètre';
+        lsMode.style.color = '#555';
+        lsTime.style.color = '#fff';
         lsTime.textContent = fmt(secs);
       } else if (s.status === 'finished') {
-        const overtime = s.elapsed - s.duration;
+        const overtime     = s.elapsed - s.duration;
+        lsMode.textContent = 'DÉPASSEMENT';
+        lsMode.style.color = '#e03020';
+        lsTime.style.color = '#e03020';
         lsTime.textContent = '-' + fmt(overtime);
-        lsTime.classList.add('overtime');
+        lsBox.classList.add('overtime-box');
       } else {
+        lsMode.textContent = 'Compte à rebours';
+        lsMode.style.color = '#555';
+        lsTime.style.color = '#fff';
         lsTime.textContent = fmt(secs);
         if (secs <= 60) lsTime.classList.add('blink');
       }
 
-      // — Overlay : panneau de réglages —
-      document.getElementById('ov-btn-sw').classList.toggle('active', s.mode === 'stopwatch');
-      document.getElementById('ov-btn-cd').classList.toggle('active', s.mode === 'countdown');
-      document.getElementById('ov-btn-sw').disabled = !idle;
-      document.getElementById('ov-btn-cd').disabled = !idle;
-      document.getElementById('ov-dur-card').style.display = s.mode === 'countdown' ? '' : 'none';
-      ['ov-up-min','ov-dn-min','ov-up-sec','ov-dn-sec'].forEach(id => document.getElementById(id).disabled = !idle);
-      document.querySelectorAll('#ov-dur-card .preset').forEach(b => b.disabled = !idle);
-      applyGoBtn(document.getElementById('ov-btn-go'), s.status);
-      document.getElementById('ov-btn-rst').disabled = idle;
-
-      // Sync spinner depuis l'état serveur quand idle (ex : autre appareil a changé la durée)
+      // Sync spinner depuis l'état serveur quand idle
       if (idle) {
         durMin = Math.floor(s.duration / 60);
         durSec = s.duration % 60;
