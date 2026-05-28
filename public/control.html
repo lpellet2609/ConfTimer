@@ -72,26 +72,6 @@
     }
     .blink { animation: blink 1s ease-in-out infinite; }
 
-    /* ─── Bouton plein écran (paysage uniquement) ─── */
-    #btn-fullscreen {
-      position: fixed;
-      top: max(14px, env(safe-area-inset-top, 14px));
-      right: max(16px, env(safe-area-inset-right, 16px));
-      width: 40px; height: 40px;
-      border: none;
-      background: rgba(255,255,255,.07);
-      color: #555;
-      font-size: 16px;
-      border-radius: 50%;
-      cursor: pointer;
-      z-index: 10;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      transition: background .2s, color .2s, opacity .3s;
-    }
-    #btn-fullscreen:active { background: rgba(255,255,255,.16); color: #aaa; }
-    @media (orientation: landscape) { #btn-fullscreen { display: flex; } }
 
     /* ─── Portrait : interface de contrôle ─── */
     body { background: #111; color: #fff; font-family: 'Helvetica Neue', Arial, sans-serif; }
@@ -268,9 +248,6 @@
     <div id="ls-status-label">PRÊT</div>
   </div>
 
-  <!-- Bouton plein écran (paysage uniquement) -->
-  <button id="btn-fullscreen" onclick="toggleFullscreen()" aria-label="Plein écran">⛶</button>
-
   <!-- ══ PORTRAIT : interface de contrôle ══ -->
   <div id="portrait-ui">
     <h1>Conftimer</h1>
@@ -368,24 +345,6 @@
     }
     function doReset() { tx({ type: 'reset' }); }
 
-    function toggleFullscreen() {
-      const el = document.documentElement;
-      if (document.fullscreenElement || document.webkitFullscreenElement) {
-        (document.exitFullscreen || document.webkitExitFullscreen || (() => {})).call(document);
-      } else {
-        if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
-        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-      }
-    }
-    function updateFsBtn() {
-      const btn = document.getElementById('btn-fullscreen');
-      const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
-      btn.style.opacity = isFs ? '0' : '1';
-      btn.style.pointerEvents = isFs ? 'none' : 'auto';
-      btn.textContent = isFs ? '⊠' : '⛶';
-    }
-    document.addEventListener('fullscreenchange', updateFsBtn);
-    document.addEventListener('webkitfullscreenchange', updateFsBtn);
 
     function setConn(on) {
       document.getElementById('dot').className = 'dot ' + (on ? 'on' : 'off');
