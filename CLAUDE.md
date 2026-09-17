@@ -82,8 +82,9 @@ Le fichier `manifest.json` + la meta `apple-mobile-web-app-capable` permettent d
 - **Compte à rebours normal** : chiffres blancs
 - **Dernière minute (≤ 60s)** : chiffres blancs + clignotement 1s
 - **Overtime** : chiffres négatifs en rouge, encadrés d'un rectangle rouge, label « DÉPASSEMENT » à la place de « Compte à rebours »
+- **Bouton Pause / Reprendre** : apparaît sous le statut quand le timer tourne ou est en pause, disparaît sinon. Permet de contrôler le timer directement depuis l'iPad sans passer par la télécommande. Envoie `pause` ou `start` via le même WebSocket que le display.
 
-La même logique s'applique à la vue paysage de `control.html`.
+La même logique d'affichage (couleurs, DÉPASSEMENT) s'applique à la vue paysage de `control.html`.
 
 ## Développement local
 
@@ -97,4 +98,5 @@ node server.js
 
 - Ne jamais stopper le ticker dans `tick()` quand le countdown arrive à 0 — l'overtime en dépend.
 - `setDuration` ne fonctionne qu'en `idle`. Pour ajuster en live, utiliser `adjustDuration`.
-- La branche de travail Claude est `claude/conf-repo-continuation-vK0yv`. Toujours merger vers `main` pour déclencher Railway.
+- Toujours travailler sur `main` (ou merger vers `main`) pour déclencher Railway. La branche `claude/conf-repo-continuation-vK0yv` est obsolète.
+- Le `display.html` est à la fois **lecteur** (reçoit l'état) et **émetteur** (envoie pause/start) — le WebSocket est bidirectionnel. La variable `ws` est déclarée au niveau module (pas dans `connect()`) pour être accessible à `togglePause()`.
