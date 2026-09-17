@@ -2,10 +2,11 @@
 
 Timer pour conférenciers, déployé sur Railway. Deux pages synchronisées en temps réel via WebSocket.
 
-## URLs de production
+## URL de production
 
-- **Télécommande (iPhone)** : `https://conftimer-production.up.railway.app/control`
-- **Affichage (iPad)** : `https://conftimer-production.up.railway.app/display`
+- **Seule application** : `https://conftimer-production.up.railway.app/control`
+- `/display` redirige vers `/control` (anciens favoris toujours fonctionnels)
+- `/` redirige vers `/control`
 
 Railway redéploie automatiquement à chaque push sur `main`.
 
@@ -15,8 +16,7 @@ Railway redéploie automatiquement à chaque push sur `main`.
 server.js           Serveur Node.js + WebSocket (état du timer)
 package.json        Dépendances : express + ws
 public/
-  control.html      Télécommande iPhone
-  display.html      Grand affichage iPad (plein écran)
+  control.html      Application unique (portrait = contrôle, paysage = display)
   manifest.json     PWA manifest (pour "Ajouter à l'écran d'accueil")
 ```
 
@@ -59,7 +59,7 @@ Si `adjustDuration` est utilisé en overtime pour rajouter du temps et que `elap
 ### Comportement selon l'orientation
 
 - **Portrait** : interface de contrôle complète (mode, durée, start/pause/reset, ajustement)
-- **Paysage** : affichage plein écran grand format (identique à display.html), aucun contrôle
+- **Paysage** : affichage plein écran grand format, avec bouton Démarrer/Pause/Reprendre
 
 Le switch portrait/paysage est géré uniquement par CSS (`@media (orientation: landscape)`).
 
@@ -75,16 +75,16 @@ Le switch portrait/paysage est géré uniquement par CSS (`@media (orientation: 
 
 Le fichier `manifest.json` + la meta `apple-mobile-web-app-capable` permettent d'ajouter la page à l'écran d'accueil iOS (Safari → Partager → Sur l'écran d'accueil). L'app s'ouvre alors en plein écran sans interface navigateur.
 
-## display.html (grand affichage iPad)
+## Vue paysage de control.html (grand affichage)
 
-- Chiffres `font-weight: 300`, taille responsive `clamp(80px, 26vw, 340px)`
+`display.html` n'existe plus. La vue paysage de `control.html` remplit ce rôle.
+
+- Chiffres taille responsive `clamp(100px, 28vw, 360px)`, `font-weight: 800`
 - **Chronomètre** : chiffres blancs, compte à la hausse
 - **Compte à rebours normal** : chiffres blancs
 - **Dernière minute (≤ 60s)** : chiffres blancs + clignotement 1s
-- **Overtime** : chiffres négatifs en rouge, encadrés d'un rectangle rouge, label « DÉPASSEMENT » à la place de « Compte à rebours »
-- **Bouton Pause / Reprendre** : apparaît sous le statut quand le timer tourne ou est en pause, disparaît sinon. Permet de contrôler le timer directement depuis l'iPad sans passer par la télécommande. Envoie `pause` ou `start` via le même WebSocket que le display.
-
-La même logique d'affichage (couleurs, DÉPASSEMENT) s'applique à la vue paysage de `control.html`.
+- **Overtime** : chiffres négatifs en rouge, encadrés d'un rectangle rouge, label « DÉPASSEMENT »
+- **Bouton Démarrer / Pause / Reprendre** : apparaît directement sur la vue paysage — l'iPad est donc entièrement autonome sans télécommande séparée.
 
 ## Développement local
 
@@ -99,4 +99,5 @@ node server.js
 - Ne jamais stopper le ticker dans `tick()` quand le countdown arrive à 0 — l'overtime en dépend.
 - `setDuration` ne fonctionne qu'en `idle`. Pour ajuster en live, utiliser `adjustDuration`.
 - Toujours travailler sur `main` (ou merger vers `main`) pour déclencher Railway. La branche `claude/conf-repo-continuation-vK0yv` est obsolète.
-- Le `display.html` est à la fois **lecteur** (reçoit l'état) et **émetteur** (envoie pause/start) — le WebSocket est bidirectionnel. La variable `ws` est déclarée au niveau module (pas dans `connect()`) pour être accessible à `togglePause()`.
+- `control.html` est à la fois **lecteur** (reçoit l'état) et **émetteur** (envoie pause/start/etc.) — le WebSocket est bidirectionnel.
+- `display.html` a été supprimé. `/display` et `/` redirigent vers `/control`.

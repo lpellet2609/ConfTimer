@@ -9,7 +9,7 @@ const wss = new WebSocketServer({ server });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/display', (req, res) => res.sendFile(path.join(__dirname, 'public', 'display.html')));
+app.get('/display', (req, res) => res.redirect('/control'));
 app.get('/control', (req, res) => res.sendFile(path.join(__dirname, 'public', 'control.html')));
 app.get('/', (req, res) => res.redirect('/control'));
 
