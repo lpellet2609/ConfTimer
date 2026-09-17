@@ -71,6 +71,22 @@
       50%       { opacity: 0.1; }
     }
     .blink { animation: blink 1s ease-in-out infinite; }
+    #btn-pause {
+      margin-top: 5vh;
+      padding: 14px 52px;
+      border: 2px solid rgba(255,255,255,0.15);
+      border-radius: 50px;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.45);
+      font-size: clamp(13px, 1.6vw, 20px);
+      font-weight: 500;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      transition: background .2s, color .2s, border-color .2s;
+    }
+    #btn-pause:active { background: rgba(255,255,255,.14); color: #fff; border-color: rgba(255,255,255,.4); }
   </style>
 </head>
 <body>
@@ -79,13 +95,22 @@
     <div id="time">00:00</div>
   </div>
   <div id="status-label">PRÊT</div>
+  <button id="btn-pause" style="display:none;" onclick="togglePause()"></button>
   <div id="conn-dot"></div>
   <script>
-    const timerBox = document.getElementById('timer-box');
-    const timeEl   = document.getElementById('time');
-    const modeEl   = document.getElementById('mode-label');
-    const statusEl = document.getElementById('status-label');
-    const connDot  = document.getElementById('conn-dot');
+    const timerBox  = document.getElementById('timer-box');
+    const timeEl    = document.getElementById('time');
+    const modeEl    = document.getElementById('mode-label');
+    const statusEl  = document.getElementById('status-label');
+    const connDot   = document.getElementById('conn-dot');
+    const pauseBtn  = document.getElementById('btn-pause');
+    let ws, curStatus = 'idle';
+
+    function togglePause() {
+      if (!ws || ws.readyState !== 1) return;
+      if (curStatus === 'running') ws.send(JSON.stringify({ type: 'pause' }));
+      else if (curStatus === 'paused') ws.send(JSON.stringify({ type: 'start' }));
+    }
 
     (function() {
       let sentinel = null;
@@ -111,8 +136,12 @@
     }
 
     function applyState(st) {
+      curStatus = st.status;
       const lbls = { idle: 'PRÊT', running: 'EN COURS', paused: 'PAUSE', finished: 'TERMINÉ' };
       statusEl.textContent = lbls[st.status] ?? '';
+      if (st.status === 'running') { pauseBtn.style.display = ''; pauseBtn.textContent = 'Pause'; }
+      else if (st.status === 'paused') { pauseBtn.style.display = ''; pauseBtn.textContent = 'Reprendre'; }
+      else pauseBtn.style.display = 'none';
 
       timeEl.className = '';
       timerBox.classList.remove('overtime-box');
@@ -141,7 +170,7 @@
 
     function connect() {
       const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const ws = new WebSocket(`${proto}//${location.host}`);
+      ws = new WebSocket(`${proto}//${location.host}`);
       ws.onopen    = () => connDot.className = 'on';
       ws.onmessage = (e) => { const d = JSON.parse(e.data); if (d.type === 'state') applyState(d); };
       ws.onclose   = () => { connDot.className = 'off'; setTimeout(connect, 2000); };
