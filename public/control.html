@@ -66,6 +66,22 @@
       color: #3a3a3a;
       margin-top: 3vh;
     }
+    #ls-btn-action {
+      margin-top: 5vh;
+      padding: 14px 52px;
+      border: 2px solid rgba(255,255,255,0.15);
+      border-radius: 50px;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.45);
+      font-size: clamp(13px, 1.6vw, 20px);
+      font-weight: 500;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      transition: background .2s, color .2s, border-color .2s;
+    }
+    #ls-btn-action:active { background: rgba(255,255,255,.14); color: #fff; border-color: rgba(255,255,255,.4); }
     @keyframes blink {
       0%, 100% { opacity: 1; }
       50%       { opacity: 0.1; }
@@ -246,6 +262,7 @@
       <div id="ls-time">00:00</div>
     </div>
     <div id="ls-status-label">PRÊT</div>
+    <button id="ls-btn-action" style="display:none;" onclick="lsAction()"></button>
   </div>
 
   <!-- ══ PORTRAIT : interface de contrôle ══ -->
@@ -336,6 +353,10 @@
       });
     }
     function adjust(delta) { tx({ type: 'adjustDuration', delta }); }
+    function lsAction() {
+      if (st.status === 'running') tx({ type: 'pause' });
+      else if (st.status === 'idle' || st.status === 'paused') tx({ type: 'start' });
+    }
     function goAction() {
       if (st.status === 'running') {
         tx({ type: 'pause' });
@@ -383,12 +404,17 @@
       document.getElementById('btn-rst').disabled = idle;
 
       // — Paysage : grand affichage —
-      const lsBox  = document.getElementById('ls-timer-box');
-      const lsTime = document.getElementById('ls-time');
-      const lsMode = document.getElementById('ls-mode-label');
+      const lsBox    = document.getElementById('ls-timer-box');
+      const lsTime   = document.getElementById('ls-time');
+      const lsMode   = document.getElementById('ls-mode-label');
+      const lsAction = document.getElementById('ls-btn-action');
       lsTime.className = '';
       lsBox.classList.remove('overtime-box');
       document.getElementById('ls-status-label').textContent = lbls[s.status] ?? '';
+      if (s.status === 'idle')    { lsAction.style.display = ''; lsAction.textContent = 'Démarrer'; }
+      else if (s.status === 'running') { lsAction.style.display = ''; lsAction.textContent = 'Pause'; }
+      else if (s.status === 'paused')  { lsAction.style.display = ''; lsAction.textContent = 'Reprendre'; }
+      else lsAction.style.display = 'none';
 
       if (s.mode === 'stopwatch') {
         lsMode.textContent = 'Chronomètre';
